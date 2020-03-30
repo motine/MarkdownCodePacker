@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-import re
+import re, os, os.path
 import zlib, base64
 
 # Please see `README.md`.
@@ -53,10 +53,43 @@ class MarkdownCodePacker:
     encoded_contents = base64.b64encode(zlib.compress(bytes(contents, 'UTF-8'), 9)).decode('UTF-8')
     return "<!-- %s:%s -->\n" % (filename, encoded_contents)
 
-# class MarkdownCodePackerUnpackAllCommand(sublime_plugin.TextCommand):
-#   def run(self, edit):
-#     self.view.window().show_quick_panel( [['abc', 'def'], ['hij', 'klm']], None, sublime.KEEP_OPEN_ON_FOCUS_LOST, 0, None)
-#     pass
+class MarkdownCodePackerUnpackAllCommand(sublime_plugin.TextCommand):
+  ENTRY_SELECT = ['[OK]', '...will be replaced...']
+  ENTRY_FOLDER_UP = ['[..]', '[move up]']
+
+  def run(self, edit):
+    window = self.view.window()
+    def on_done(folder):
+      print("RECEIVED FOLDER: ", folder)
+    self.ask_for_folder(self.infer_start_path(), on_done)
+
+  # on_done receives the path as first argument
+  def ask_for_folder(self, start_path, on_done=None):
+    entries = [self.ENTRY_SELECT, self.ENTRY_FOLDER_UP]
+    entries[0][1] = start_path # replace the sub-title with the current path
+    entries += [[fname, os.path.join(start_path, fname)] for fname in os.listdir(start_path) if os.path.isdir(os.path.join(start_path, fname))]
+
+    def panel_callback(index):
+      if index == -1: # canceled
+        return
+      chosen_entry = entries[index]
+      if chosen_entry[0] == self.ENTRY_SELECT[0]: # we only compare the title, because we change the sub-title
+        if on_done:
+          on_done(start_path)
+        return
+      if chosen_entry == self.ENTRY_FOLDER_UP:
+        parent_path = os.path.abspath(os.path.join(start_path, os.pardir))
+        self.ask_for_folder(parent_path, on_done)
+        return
+      self.ask_for_folder(chosen_entry[1], on_done)
+
+    self.view.window().show_quick_panel(entries, panel_callback, sublime.KEEP_OPEN_ON_FOCUS_LOST, 0, None)
+
+  def infer_start_path(self):
+    vars = self.view.window().extract_variables()
+    if 'file' in vars:
+      return os.path.dirname(vars['file'])
+    return vars.get('folder') or os.path.expanduser('~')
 
 class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
