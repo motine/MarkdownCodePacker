@@ -1,30 +1,11 @@
-# view.run_command('markdown_code_packer_pack')
-# view.run_command('markdown_code_packer_unpack')
-
 import sublime, sublime_plugin
 import re
 import zlib, base64
 
-MESSAGE_PREFIX = "Markdown Code Packer: "
-
-# TODO Unpack all -> select folder
-# TODO Pack all -> select folder (default is encoded)
-# TODO write README (see [[202003292017]]) & record GIFs
-# TODO refactor long methods
-# TODO Command line tool? & Brew formula
-# TODO put on github
-# TODO put in registry
-# TODO export all files in this file to a directory (similar to "Move...")
-
-class MarkdownCodePacker:
-  def decode(filename, encoded_contents):
-    contents = zlib.decompress(base64.b64decode(encoded_contents)).decode('UTF-8').strip()
-    return "`%s`:\n\n```\n%s\n```\n" % (filename, contents)
-
-  def encode(filename, contents):
-    encoded_contents = base64.b64encode(zlib.compress(bytes(contents, 'UTF-8'), 9)).decode('UTF-8')
-    return "<!-- %s:%s -->\n" % (filename, encoded_contents)
-
+# Please see `README.md`.
+#
+# You can start the plugin's commands via the command palette (see Default.sublime-commands)
+#
 # Resources:
 # - https://code.tutsplus.com/tutorials/how-to-create-a-sublime-text-2-plugin--net-22685
 # - https://www.sublimetext.com/docs/3/api_reference.html#sublime
@@ -61,13 +42,23 @@ class MarkdownCodePacker:
 # };
 # ```
 
-class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
-  def touches_selection(region, selections):
-    for sel in selections:
-      if region.intersects(sel):
-        return True
-    return False
+MESSAGE_PREFIX = "Markdown Code Packer: "
 
+class MarkdownCodePacker:
+  def decode(filename, encoded_contents):
+    contents = zlib.decompress(base64.b64decode(encoded_contents)).decode('UTF-8').strip()
+    return "`%s`:\n\n```\n%s\n```\n" % (filename, contents)
+
+  def encode(filename, contents):
+    encoded_contents = base64.b64encode(zlib.compress(bytes(contents, 'UTF-8'), 9)).decode('UTF-8')
+    return "<!-- %s:%s -->\n" % (filename, encoded_contents)
+
+# class MarkdownCodePackerUnpackAllCommand(sublime_plugin.TextCommand):
+#   def run(self, edit):
+#     self.view.window().show_quick_panel( [['abc', 'def'], ['hij', 'klm']], None, sublime.KEEP_OPEN_ON_FOCUS_LOST, 0, None)
+#     pass
+
+class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     fenced_areas_possibly_with_filename = self.view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$")
 
@@ -90,6 +81,13 @@ class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
       substitution = MarkdownCodePacker.encode(filename, code)
       self.view.replace(edit, region, substitution)
       offset += len(substitution) - region.size()
+
+  def touches_selection(region, selections):
+    for sel in selections:
+      if region.intersects(sel):
+        return True
+    return False
+
 
 class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
   def run(self, edit):

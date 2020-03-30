@@ -1,4 +1,5 @@
 [
     { "caption": "Markdown Code Packer: Pack", "command": "markdown_code_packer_pack" },
     { "caption": "Markdown Code Packer: Unpack", "command": "markdown_code_packer_unpack" },
+    { "caption": "Markdown Code Packer: Unpack All", "command": "markdown_code_packer_unpack_all" },
 ]
