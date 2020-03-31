@@ -34,3 +34,12 @@ Some more content:
 ```
 const path = require('path');
 ```
+
+```
+fisch = 1
+```
+
+```
+test = 77
+```
+

@@ -205,11 +205,25 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
 
   # define callback
   def on_done(self, destination_folder):
+    untitled_suffix = 1
     for occurrence in self.occurrences:
-      file_path = os.path.join(destination_folder, occurrence.filename)
+      filename = occurrence.filename
+      # deal with untitled
+      if occurrence.isuntitled:
+        filename = "%s-%i" % (occurrence.filename, untitled_suffix)
+        untitled_suffix += 1
+      # assemble full paths
+      file_path = os.path.join(destination_folder, filename)
       folder_path = os.path.dirname(file_path)
-      # TODO deal with untitled and overwriting
+      # make parent directory (if filename contains a relative path)
       if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+      # ask to overwrite if file exists
+      if os.path.exists(file_path):
+        answer = sublime.yes_no_cancel_dialog("Do you want to overwrite %s?" % (file_path,), 'Overwrite', 'Keep Existing')
+        if answer == sublime.DIALOG_NO:
+          continue
+        elif answer == sublime.DIALOG_CANCEL:
+          return
       with open(file_path, 'w') as f:
         f.write(occurrence.unpacked)

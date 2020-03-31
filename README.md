@@ -15,6 +15,7 @@ Sometimes I create gist.
 
 - Unpack
 - Pack
+- Extract all (can include relative path)
 - select multiple lines/code blocks to pack/unpack them at same time
 
 ## Installation
