@@ -72,7 +72,7 @@ class CodeOccurrence():
   @property
   def unpacked(self):
     if not self._unpacked:
-      self._unpacke()
+      self._unpack()
     return self._unpacked
   
   def region_with_offset(self, offset):
@@ -88,15 +88,28 @@ class CodeOccurrence():
     '''returns the difference between the packed and unpacked region lengths. useful for calculating the offset during replacement.'''
     return len(self.packed) - self.region.size()
 
+  def offset_when_unpacking(self):
+    '''see offset_when_packing'''
+    return len(self.unpacked) - self.region.size()
+
   def _unpack(self):
-    code = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
-    self._unpacked = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+    try:
+      code = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
+      self._unpacked = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+    except Exception:
+      sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
+      raise
 
   def _pack(self):
-    code = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
-    self._packed = "<!-- %s:%s -->\n" % (self.filename, code)
+    try:
+      code = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
+      self._packed = "<!-- %s:%s -->\n" % (self.filename, code)
+    except Exception:
+      sublime.error_message(MESSAGE_PREFIX + "Could not pack contents.")
+      raise
 
 class OccurrenceFinder:
+  @staticmethod
   def unpacked(view):
     result = []
     for region in view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$"): # fenced_areas_possibly_with_filename
@@ -112,13 +125,41 @@ class OccurrenceFinder:
       result.append(CodeOccurrence(filename=filename, unpacked=code, region=region))
     return result
 
+  @staticmethod
+  def packed_in_line(view, region):
+    line = view.substr(region)
+    if not line.strip(): # ignore empty lines
+      return
+    
+    match = re.search('^<!--\s*([^:]+):(.+?)\s*-->$', line)
+    if not match:
+      sublime.error_message(MESSAGE_PREFIX + "Could not parse this line (use <!-- filename:contents --> ):\n" + line)
+      return
+
+    filename, packed = match.groups()
+    return CodeOccurrence(filename=filename, packed=packed, region=region)
+
+class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
+  def run(self, edit):
+    occurrences = []
+    for selection in self.view.sel():
+      for line_region in self.view.lines(selection):
+        o = OccurrenceFinder.packed_in_line(self.view, line_region)
+        if o:
+          occurrences.append(o)
+
+    offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
+    for occurrence in occurrences:
+      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.unpacked)
+      offset += occurrence.offset_when_unpacking()
+
 class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     occurrences = OccurrenceFinder.unpacked(self.view)
-
     occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
     if not occurrences_touching_selection:
       sublime.error_message(MESSAGE_PREFIX + "Could not find anything to pack. Use:\n\n`filename`:\n\n```\n...contents...\n```")
+      return
 
     offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
     for occurrence in occurrences_touching_selection:
@@ -162,26 +203,3 @@ class MarkdownCodePackerUnpackAllToFolderCommand(sublime_plugin.TextCommand):
     if 'file' in vars:
       return os.path.dirname(vars['file'])
     return vars.get('folder') or os.path.expanduser('~')
-
-class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
-  def run(self, edit):
-    offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
-    for selection in self.view.sel():
-      for line_region in self.view.lines(selection):
-        line_region.a, line_region.b = line_region.a + offset, line_region.b + offset
-        line = self.view.substr(line_region)
-        if not line.strip():
-          continue
-        
-        match = re.search('^<!--\s*([^:]+):(.+?)\s*-->$', line)
-        if not match:
-          sublime.error_message(MESSAGE_PREFIX + "Could not parse this line (use <!-- filename:contents --> ):\n" + line)
-          return
-        
-        filename, contents = match.groups()
-        try:
-          substitution = MarkdownCodePacker.unpack(filename, contents)
-          self.view.replace(edit, line_region, substitution)
-          offset += len(substitution) - line_region.size()
-        except:
-          sublime.error_message(MESSAGE_PREFIX + "Could not decompress contents.")
