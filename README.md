@@ -13,6 +13,11 @@ Sometimes I create gist.
 
 - How does it work?
 
+## Installation
+
+- With Package Control: Open the command palette and run the `Package Control: Install Package` command, find and install the `Markdown Code Packer` plugin.
+- Manually: Clone or download git repository into your packages folder (to find the folder run the command `Preferences - Browse Packages`).
+
 ## Choices
 
 - why use comments?
