@@ -113,7 +113,7 @@ class CodeOccurrence():
   def _unpack(self):
     try:
       code = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
-      self._unpacked = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+      self._unpacked = "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
       raise
@@ -144,34 +144,31 @@ class OccurrenceFinder:
     return result
 
   @staticmethod
-  def packed_in_line(view, region):
-    line = view.substr(region)
-    if not line.strip(): # ignore empty lines
-      return
-    
-    match = re.search('^<!--\s*([^:]+):(.+?)\s*-->$', line)
-    if not match:
-      sublime.error_message(MESSAGE_PREFIX + "Could not parse this line (use <!-- filename:contents --> ):\n" + line)
-      return
+  def packed(view):
+    result = []
+    for region in view.find_all("^\s*<!--\s*[^:]+:.+?\s*-->\s*$"):
+      line = view.substr(region)
+      match = re.search("<!--\s*([^:]+):(.+?)\s*-->\s*$", line)
 
-    filename, packed = match.groups()
-    return CodeOccurrence(filename=filename, packed=packed, region=region)
-
+      filename, packed = match.groups()
+      result.append(CodeOccurrence(filename=filename, packed=packed, region=region))
+    return result
+  
 class UnpackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
-    occurrences = []
-    for selection in self.view.sel():
-      for line_region in self.view.lines(selection):
-        o = OccurrenceFinder.packed_in_line(self.view, line_region)
-        if o:
-          occurrences.append(o)
+    occurrences = OccurrenceFinder.packed(self.view)
+    occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
+    if not occurrences_touching_selection:
+      sublime.error_message(MESSAGE_PREFIX + "Could not find anything to unpack. Use:\n\n<!-- filename:...encoded... -->")
+      return
 
     offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
-    for occurrence in occurrences:
+    for occurrence in occurrences_touching_selection:
       self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.unpacked)
       offset += occurrence.offset_when_unpacking()
 
 class PackCommand(sublime_plugin.TextCommand):
+  # maybe refactor with above
   def run(self, edit):
     occurrences = OccurrenceFinder.unpacked(self.view)
     occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
@@ -184,7 +181,7 @@ class PackCommand(sublime_plugin.TextCommand):
       self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed)
       offset += occurrence.offset_when_packing()
 
-class UnpackAllToFolderCommand(sublime_plugin.TextCommand):
+class ExtractAllCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     window = self.view.window()
     def on_done(folder):
