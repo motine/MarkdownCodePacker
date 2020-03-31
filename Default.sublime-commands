@@ -2,4 +2,5 @@
     { "caption": "Markdown Code Packer: Pack", "command": "pack" },
     { "caption": "Markdown Code Packer: Unpack", "command": "unpack" },
     { "caption": "Markdown Code Packer: Extract All to Folder", "command": "extract_all" },
+    { "caption": "Markdown Code Packer: Pack Folder", "command": "pack_folder" },
 ]

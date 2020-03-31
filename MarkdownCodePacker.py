@@ -32,8 +32,6 @@ MESSAGE_PREFIX = "Markdown Code Packer: "
 # // ...
 # ```
 
-import sublime, sublime_plugin
-
 class SublimeHelper:
   ENTRY_SELECT = ['[OK]', '...will be replaced...']
   ENTRY_FOLDER_UP = ['[..]', '[move up]']
@@ -200,11 +198,11 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
       return
     # ask for the folder
     window = self.view.window()
-    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), self.on_done)
-    # continue in callback (on_done)...
+    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), self.folder_selected)
+    # continue in callback (folder_selected)...
 
   # define callback
-  def on_done(self, destination_folder):
+  def folder_selected(self, destination_folder):
     untitled_suffix = 1
     for occurrence in self.occurrences:
       filename = occurrence.filename
@@ -227,3 +225,33 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
           return
       with open(file_path, 'w') as f:
         f.write(occurrence.unpacked)
+
+class InsertFileCommand(sublime_plugin.TextCommand):
+  '''Inserts a single file into the current document. This is required for the PackFolderCommand. We needed to split this out, because inserts require a valid edit object (which is only valid during the run method).'''
+  def run(self, edit, relative_path=None, full_path=None):
+    with open(full_path, "r") as f:
+      occurrence = CodeOccurrence(filename=relative_path, unpacked=f.read())
+      insert_point = self.view.full_line(self.view.sel()[-1]).b
+      self.view.insert(edit, insert_point, occurrence.packed_markdown)
+
+class PackFolderCommand(sublime_plugin.TextCommand):
+  def run(self, edit):
+    # ask for the folder
+    window = self.view.window()
+    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), self.folder_selected)
+    # continue in callback (folder_selected)...
+
+  def folder_selected(self, source_folder):
+    self.insert_folder_contents(source_folder)
+
+  def insert_folder_contents(self, folder, relative_path=''):
+    '''inserts the folder contents into the current view. relative_path will be prepended to the filename'''
+    for fname in sorted(os.listdir(folder), reverse=True):
+      full_path = os.path.join(folder, fname)
+      if fname.startswith('.'):
+        continue
+      if os.path.isdir(full_path):
+        self.insert_folder_contents(full_path, os.path.join(relative_path, fname))
+        continue
+      self.view.run_command('insert_file', {"relative_path": os.path.join(relative_path, fname), "full_path":full_path})
+

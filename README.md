@@ -16,6 +16,7 @@ Sometimes I create gist.
 - Unpack
 - Pack
 - Extract all (can include relative path)
+- Pack folder
 - select multiple lines/code blocks to pack/unpack them at same time
 
 ## Installation
@@ -38,12 +39,9 @@ Sometimes I create gist.
 
 ## TODO
 
-- Unpack all to folder -> select folder
-- Unpack all
-- Pack all -> select folder (default is encoded)
 - write README 
-- refactor long methods
 - Command line tool? & Brew formula
 - put on github
 - put in registry
+- remember/infer file type for fenced code blocks
 - export all files in this file to a directory (similar to "Move...")
