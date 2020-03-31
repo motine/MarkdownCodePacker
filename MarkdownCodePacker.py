@@ -2,6 +2,8 @@ import sublime, sublime_plugin
 import re, os, os.path
 import zlib, base64
 
+MESSAGE_PREFIX = "Markdown Code Packer: "
+
 # Please see `README.md`.
 #
 # You can start the plugin's commands via the command palette (see Default.sublime-commands)
@@ -42,38 +44,86 @@ import zlib, base64
 # };
 # ```
 
-MESSAGE_PREFIX = "Markdown Code Packer: "
+import sublime, sublime_plugin
 
 class MarkdownCodePackerSublimeHelper:
   pass
 
-class CodeOccurence():
-  def __init__(self, filename=None, encoded=None, decoded=None, region=None):
-    '''encoded and decoded are is the actual markdown. region is the sublime View region.'''
+class CodeOccurrence():
+  def __init__(self, filename=None, packed=None, unpacked=None, region=None):
+    '''packed and unpacked are is the actual markdown. region is the sublime View region.'''
     self.region = region
-    self.filename = filename
-    self._encoded = encoded
-    self._decoded = decoded
+    self._filename = filename
+    self._packed = packed
+    self._unpacked = unpacked
 
   @property
-  def encoded(self):
-    if not self._encoded:
-      self._encode()
-    return self._encoded
+  def filename(self):
+    if not self._filename:
+      return 'untitled'
+    return self._filename
 
   @property
-  def decoded(self):
-    if not self._decoded:
-      self._decode()
-    return self._decoded
+  def packed(self):
+    if not self._packed:
+      self._pack()
+    return self._packed
+
+  @property
+  def unpacked(self):
+    if not self._unpacked:
+      self._unpacke()
+    return self._unpacked
   
-  def _decode(self):
-    code = zlib.decompress(base64.b64decode(self._encoded)).decode('UTF-8').strip()
-    self._decoded = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+  def region_with_offset(self, offset):
+    return sublime.Region(self.region.a + offset, self.region.b + offset)
 
-  def _encode(self):
-    code = base64.b64encode(zlib.compress(bytes(self._decoded, 'UTF-8'), 9)).decode('UTF-8')
-    self._encoded = "<!-- %s:%s -->\n" % (self.filename, code)
+  def touches_selections(self, selections):
+    for sel in selections:
+      if self.region.intersects(sel):
+        return True
+    return False
+
+  def offset_when_packing(self):
+    '''returns the difference between the packed and unpacked region lengths. useful for calculating the offset during replacement.'''
+    return len(self.packed) - self.region.size()
+
+  def _unpack(self):
+    code = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
+    self._unpacked = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+
+  def _pack(self):
+    code = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
+    self._packed = "<!-- %s:%s -->\n" % (self.filename, code)
+
+class OccurrenceFinder:
+  def unpacked(view):
+    result = []
+    for region in view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$"): # fenced_areas_possibly_with_filename
+      contents = view.substr(region)
+
+      filename = None
+      filename_match = re.search("^`([^`]+?)`:", contents)
+      if filename_match:
+        filename = filename_match.group(1)
+      
+      code = re.search("[\w\W]*?```.*\n([\w\W]+)```\s*\Z", contents).group(1)
+      
+      result.append(CodeOccurrence(filename=filename, unpacked=code, region=region))
+    return result
+
+class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
+  def run(self, edit):
+    occurrences = OccurrenceFinder.unpacked(self.view)
+
+    occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
+    if not occurrences_touching_selection:
+      sublime.error_message(MESSAGE_PREFIX + "Could not find anything to pack. Use:\n\n`filename`:\n\n```\n...contents...\n```")
+
+    offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
+    for occurrence in occurrences_touching_selection:
+      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed)
+      offset += occurrence.offset_when_packing()
 
 class MarkdownCodePackerUnpackAllToFolderCommand(sublime_plugin.TextCommand):
   ENTRY_SELECT = ['[OK]', '...will be replaced...']
@@ -113,39 +163,6 @@ class MarkdownCodePackerUnpackAllToFolderCommand(sublime_plugin.TextCommand):
       return os.path.dirname(vars['file'])
     return vars.get('folder') or os.path.expanduser('~')
 
-class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
-  def run(self, edit):
-    fenced_areas_possibly_with_filename = self.view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$")
-
-    areas_touching_selection = [region for region in fenced_areas_possibly_with_filename if self.touches_selection(region, self.view.sel())]
-    if not areas_touching_selection:
-      sublime.error_message(MESSAGE_PREFIX + "Could not find anything to pack. Use:\n\n`filename`:\n\n```\n...contents...\n```")
-
-    offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
-    for region in areas_touching_selection:
-      region.a, region.b = region.a + offset, region.b + offset
-      contents = self.view.substr(region)
-
-      filename = 'untitled' # TODO move to occurrence
-      filename_match = re.search("^`([^`]+?)`:", contents)
-      if filename_match:
-        filename = filename_match.groups()[0]
-      code_match = re.search("[\w\W]*?```.*\n([\w\W]+)```\s*\Z", contents)
-      code = code_match.groups()[0]
-      
-      occurence = CodeOccurence(filename=filename, decoded=code, region=region)
-
-      substitution = occurence.encoded
-      self.view.replace(edit, region, substitution)
-      offset += len(substitution) - region.size()
-
-  def touches_selection(self, region, selections):
-    for sel in selections:
-      if region.intersects(sel):
-        return True
-    return False
-
-
 class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
@@ -163,7 +180,7 @@ class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
         
         filename, contents = match.groups()
         try:
-          substitution = MarkdownCodePacker.decode(filename, contents)
+          substitution = MarkdownCodePacker.unpack(filename, contents)
           self.view.replace(edit, line_region, substitution)
           offset += len(substitution) - line_region.size()
         except:
