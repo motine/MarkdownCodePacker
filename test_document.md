@@ -16,22 +16,17 @@ Some more content:
 `fisch/asd.json`:
 
 ```
-const path = require('path');
-
-module.exports = {
-  entry: './src/index.js',
-  output: {
-    filename: 'main.js',
-    path: path.resolve(__dirname, 'dist'),
+{
+  "index": 0,
+  "guid": "e32e8551-9405-4783-abac-e371efc811ba",
+  "isActive": false,
+  "age": 37,
+  "name": {
+    "first": "Bauer",
+    "last": "Oliver"
   },
-  module: {
-    rules: [
-      // style: creates `style` nodes from JS strings; css: translates CSS into CommonJS; sass: compiles Sass to CSS; postcss: allow postprocessing via autoprefixer
-      { test: /\.scss$/i, use: [ 'style-loader',  'css-loader',  'sass-loader', 'postcss-loader'] },
-      { test: /\.js$/, exclude: /node_modules/, loader: "babel-loader" }
-    ],
-  },
-};
+  "range": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+}
 ```
 
 ## Huhu3

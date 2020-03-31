@@ -82,6 +82,10 @@ class CodeOccurrence():
     return self._filename
 
   @property
+  def isuntitled(self):
+    return self._filename == None
+
+  @property
   def packed(self):
     if not self._packed:
       self._pack()
@@ -92,6 +96,14 @@ class CodeOccurrence():
     if not self._unpacked:
       self._unpack()
     return self._unpacked
+  
+  @property
+  def packed_markdown(self):
+    return "<!-- %s:%s -->\n" % (self.filename, self.packed)
+
+  @property
+  def unpacked_markdown(self):
+    return "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, self.unpacked)
   
   def region_with_offset(self, offset):
     return sublime.Region(self.region.a + offset, self.region.b + offset)
@@ -104,24 +116,22 @@ class CodeOccurrence():
 
   def offset_when_packing(self):
     '''returns the difference between the packed and unpacked region lengths. useful for calculating the offset during replacement.'''
-    return len(self.packed) - self.region.size()
+    return len(self.packed_markdown) - self.region.size()
 
   def offset_when_unpacking(self):
     '''see offset_when_packing'''
-    return len(self.unpacked) - self.region.size()
+    return len(self.unpacked_markdown) - self.region.size()
 
   def _unpack(self):
     try:
-      code = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
-      self._unpacked = "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+      self._unpacked = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
       raise
 
   def _pack(self):
     try:
-      code = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
-      self._packed = "<!-- %s:%s -->\n" % (self.filename, code)
+      self._packed = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not pack contents.")
       raise
@@ -164,7 +174,7 @@ class UnpackCommand(sublime_plugin.TextCommand):
 
     offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
     for occurrence in occurrences_touching_selection:
-      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.unpacked)
+      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.unpacked_markdown)
       offset += occurrence.offset_when_unpacking()
 
 class PackCommand(sublime_plugin.TextCommand):
@@ -178,12 +188,28 @@ class PackCommand(sublime_plugin.TextCommand):
 
     offset = 0 # we need to keep track of how much we replaced, because the positions of subsequent replacements will be shifted by prior replacements
     for occurrence in occurrences_touching_selection:
-      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed)
+      self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed_markdown)
       offset += occurrence.offset_when_packing()
 
 class ExtractAllCommand(sublime_plugin.TextCommand):
   def run(self, edit):
+    # determine occurrences
+    self.occurrences = OccurrenceFinder.packed(self.view) + OccurrenceFinder.unpacked(self.view)
+    if not self.occurrences:
+      sublime.error_message(MESSAGE_PREFIX + "Could not find any packed or unpacked code.")
+      return
+    # ask for the folder
     window = self.view.window()
-    def on_done(folder):
-      print("RECEIVED FOLDER: ", folder)
-    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), on_done)
+    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), self.on_done)
+    # continue in callback (on_done)...
+
+  # define callback
+  def on_done(self, destination_folder):
+    for occurrence in self.occurrences:
+      file_path = os.path.join(destination_folder, occurrence.filename)
+      folder_path = os.path.dirname(file_path)
+      # TODO deal with untitled and overwriting
+      if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+      with open(file_path, 'w') as f:
+        f.write(occurrence.unpacked)
