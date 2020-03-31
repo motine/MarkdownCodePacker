@@ -7,8 +7,8 @@ import zlib, base64
 # You can start the plugin's commands via the command palette (see Default.sublime-commands)
 #
 # Resources:
-# - https://code.tutsplus.com/tutorials/how-to-create-a-sublime-text-2-plugin--net-22685
 # - https://www.sublimetext.com/docs/3/api_reference.html#sublime
+# - https://code.tutsplus.com/tutorials/how-to-create-a-sublime-text-2-plugin--net-22685
 #
 # Examples:
 # --- packed ---
@@ -44,16 +44,38 @@ import zlib, base64
 
 MESSAGE_PREFIX = "Markdown Code Packer: "
 
-class MarkdownCodePacker:
-  def decode(filename, encoded_contents):
-    contents = zlib.decompress(base64.b64decode(encoded_contents)).decode('UTF-8').strip()
-    return "`%s`:\n\n```\n%s\n```\n" % (filename, contents)
+class MarkdownCodePackerSublimeHelper:
+  pass
 
-  def encode(filename, contents):
-    encoded_contents = base64.b64encode(zlib.compress(bytes(contents, 'UTF-8'), 9)).decode('UTF-8')
-    return "<!-- %s:%s -->\n" % (filename, encoded_contents)
+class CodeOccurence():
+  def __init__(self, filename=None, encoded=None, decoded=None, region=None):
+    '''encoded and decoded are is the actual markdown. region is the sublime View region.'''
+    self.region = region
+    self.filename = filename
+    self._encoded = encoded
+    self._decoded = decoded
 
-class MarkdownCodePackerUnpackAllCommand(sublime_plugin.TextCommand):
+  @property
+  def encoded(self):
+    if not self._encoded:
+      self._encode()
+    return self._encoded
+
+  @property
+  def decoded(self):
+    if not self._decoded:
+      self._decode()
+    return self._decoded
+  
+  def _decode(self):
+    code = zlib.decompress(base64.b64decode(self._encoded)).decode('UTF-8').strip()
+    self._decoded = "`%s`:\n\n```\n%s\n```\n" % (self.filename, code)
+
+  def _encode(self):
+    code = base64.b64encode(zlib.compress(bytes(self._decoded, 'UTF-8'), 9)).decode('UTF-8')
+    self._encoded = "<!-- %s:%s -->\n" % (self.filename, code)
+
+class MarkdownCodePackerUnpackAllToFolderCommand(sublime_plugin.TextCommand):
   ENTRY_SELECT = ['[OK]', '...will be replaced...']
   ENTRY_FOLDER_UP = ['[..]', '[move up]']
 
@@ -95,7 +117,7 @@ class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     fenced_areas_possibly_with_filename = self.view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$")
 
-    areas_touching_selection = [region for region in fenced_areas_possibly_with_filename if touches_selection(region, self.view.sel())]
+    areas_touching_selection = [region for region in fenced_areas_possibly_with_filename if self.touches_selection(region, self.view.sel())]
     if not areas_touching_selection:
       sublime.error_message(MESSAGE_PREFIX + "Could not find anything to pack. Use:\n\n`filename`:\n\n```\n...contents...\n```")
 
@@ -104,18 +126,20 @@ class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
       region.a, region.b = region.a + offset, region.b + offset
       contents = self.view.substr(region)
 
-      filename = 'untitled'
+      filename = 'untitled' # TODO move to occurrence
       filename_match = re.search("^`([^`]+?)`:", contents)
       if filename_match:
         filename = filename_match.groups()[0]
       code_match = re.search("[\w\W]*?```.*\n([\w\W]+)```\s*\Z", contents)
       code = code_match.groups()[0]
       
-      substitution = MarkdownCodePacker.encode(filename, code)
+      occurence = CodeOccurence(filename=filename, decoded=code, region=region)
+
+      substitution = occurence.encoded
       self.view.replace(edit, region, substitution)
       offset += len(substitution) - region.size()
 
-  def touches_selection(region, selections):
+  def touches_selection(self, region, selections):
     for sel in selections:
       if region.intersects(sel):
         return True

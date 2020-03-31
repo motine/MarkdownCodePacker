@@ -29,11 +29,12 @@ Sometimes I create gist.
 
 ## License
 
-## Contact
+## Contribute & Contact
 
 ## TODO
 
-- Unpack all -> select folder
+- Unpack all to folder -> select folder
+- Unpack all
 - Pack all -> select folder (default is encoded)
 - write README 
 - refactor long methods
