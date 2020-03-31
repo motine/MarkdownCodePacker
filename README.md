@@ -13,6 +13,10 @@ Sometimes I create gist.
 
 - How does it work?
 
+- Unpack
+- Pack
+- select multiple lines/code blocks to pack/unpack them at same time
+
 ## Installation
 
 - With Package Control: Open the command palette and run the `Package Control: Install Package` command, find and install the `Markdown Code Packer` plugin.

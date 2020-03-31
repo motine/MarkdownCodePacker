@@ -4,9 +4,11 @@ import zlib, base64
 
 MESSAGE_PREFIX = "Markdown Code Packer: "
 
-# Please see `README.md`.
+# You can start the plugin's commands via the command palette (see Default.sublime-commands).
+# Please note that we keep all classes in this single file, because of the reloading behavior of Sublime Text.
+# (only top level files are reloaded; and top level files are only reloaded when save - not when a dependency changes)
 #
-# You can start the plugin's commands via the command palette (see Default.sublime-commands)
+# Please see `README.md` for more info
 #
 # Resources:
 # - https://www.sublimetext.com/docs/3/api_reference.html#sublime
@@ -21,33 +23,49 @@ MESSAGE_PREFIX = "Markdown Code Packer: "
 # 
 # ```javascript
 # const path = require('path');
-# module.exports = {
-#   entry: './src/index.js',
-#   module: {
-#     rules: [ // style: creates `style` nodes from JS strings; css: translates CSS into CommonJS; sass: compiles Sass to CSS; postcss: allow postprocessing via autoprefixer
-#       { test: /\.scss$/i, use: [ 'style-loader',  'css-loader',  'sass-loader', 'postcss-loader'] },
-#     ],
-#   },
-# };
+# // ...
 # ```
 #
 # --- unpacked without title ``` ---
 # ```javascript
 # const path = require('path');
-# module.exports = {
-#   entry: './src/index.js',
-#   module: {
-#     rules: [ // style: creates `style` nodes from JS strings; css: translates CSS into CommonJS; sass: compiles Sass to CSS; postcss: allow postprocessing via autoprefixer
-#       { test: /\.scss$/i, use: [ 'style-loader',  'css-loader',  'sass-loader', 'postcss-loader'] },
-#     ],
-#   },
-# };
+# // ...
 # ```
 
 import sublime, sublime_plugin
 
-class MarkdownCodePackerSublimeHelper:
-  pass
+class SublimeHelper:
+  ENTRY_SELECT = ['[OK]', '...will be replaced...']
+  ENTRY_FOLDER_UP = ['[..]', '[move up]']
+
+  @staticmethod
+  def ask_for_folder(window, start_path, on_done=None):
+    '''shows a quick selection panel. on_done receives the path as first argument'''
+    options = [ # list of [title, subtitle, behavior]
+      ['[OK]', start_path, lambda: on_done and on_done(start_path)],
+      ['[..]', '[move up]', lambda: SublimeHelper.ask_for_folder(window, os.path.abspath(os.path.join(start_path, os.pardir)), on_done)] # continue with parent_path 
+    ]
+    # assemble an option per folder
+    for fname in os.listdir(start_path):
+      full_path = os.path.join(start_path, fname)
+      if os.path.isdir(full_path):
+        def b(path): # make sure full_path is referenced correctly in the closure
+          return lambda: SublimeHelper.ask_for_folder(window, path, on_done)
+        options.append([fname, full_path, b(full_path)])
+
+    def panel_callback(index): # note that this method is defined in the scope of the parent method
+      if index != -1: # not canceled
+        options[index][2]() # call behavior
+    
+    panel_entries = [[title, subtitle] for [title, subtitle, _behavior] in options]
+    window.show_quick_panel(panel_entries, panel_callback, sublime.KEEP_OPEN_ON_FOCUS_LOST, 0, None)
+
+  @staticmethod
+  def infer_start_path(window):
+    vars = window.extract_variables()
+    if 'file' in vars:
+      return os.path.dirname(vars['file'])
+    return vars.get('folder') or os.path.expanduser('~')
 
 class CodeOccurrence():
   def __init__(self, filename=None, packed=None, unpacked=None, region=None):
@@ -139,7 +157,7 @@ class OccurrenceFinder:
     filename, packed = match.groups()
     return CodeOccurrence(filename=filename, packed=packed, region=region)
 
-class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
+class UnpackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     occurrences = []
     for selection in self.view.sel():
@@ -153,7 +171,7 @@ class MarkdownCodePackerUnpackCommand(sublime_plugin.TextCommand):
       self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.unpacked)
       offset += occurrence.offset_when_unpacking()
 
-class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
+class PackCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     occurrences = OccurrenceFinder.unpacked(self.view)
     occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
@@ -166,40 +184,9 @@ class MarkdownCodePackerPackCommand(sublime_plugin.TextCommand):
       self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed)
       offset += occurrence.offset_when_packing()
 
-class MarkdownCodePackerUnpackAllToFolderCommand(sublime_plugin.TextCommand):
-  ENTRY_SELECT = ['[OK]', '...will be replaced...']
-  ENTRY_FOLDER_UP = ['[..]', '[move up]']
-
+class UnpackAllToFolderCommand(sublime_plugin.TextCommand):
   def run(self, edit):
     window = self.view.window()
     def on_done(folder):
       print("RECEIVED FOLDER: ", folder)
-    self.ask_for_folder(self.infer_start_path(), on_done)
-
-  # on_done receives the path as first argument
-  def ask_for_folder(self, start_path, on_done=None):
-    entries = [self.ENTRY_SELECT, self.ENTRY_FOLDER_UP]
-    entries[0][1] = start_path # replace the sub-title with the current path
-    entries += [[fname, os.path.join(start_path, fname)] for fname in os.listdir(start_path) if os.path.isdir(os.path.join(start_path, fname))]
-
-    def panel_callback(index):
-      if index == -1: # canceled
-        return
-      chosen_entry = entries[index]
-      if chosen_entry[0] == self.ENTRY_SELECT[0]: # we only compare the title, because we change the sub-title
-        if on_done:
-          on_done(start_path)
-        return
-      if chosen_entry == self.ENTRY_FOLDER_UP:
-        parent_path = os.path.abspath(os.path.join(start_path, os.pardir))
-        self.ask_for_folder(parent_path, on_done)
-        return
-      self.ask_for_folder(chosen_entry[1], on_done)
-
-    self.view.window().show_quick_panel(entries, panel_callback, sublime.KEEP_OPEN_ON_FOCUS_LOST, 0, None)
-
-  def infer_start_path(self):
-    vars = self.view.window().extract_variables()
-    if 'file' in vars:
-      return os.path.dirname(vars['file'])
-    return vars.get('folder') or os.path.expanduser('~')
+    SublimeHelper.ask_for_folder(window, SublimeHelper.infer_start_path(window), on_done)
