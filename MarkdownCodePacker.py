@@ -189,10 +189,16 @@ class PackCommand(sublime_plugin.TextCommand):
       self.view.replace(edit, occurrence.region_with_offset(offset), occurrence.packed_markdown)
       offset += occurrence.offset_when_packing()
 
-class ExtractAllCommand(sublime_plugin.TextCommand):
+class ExtractCommand(sublime_plugin.TextCommand):
   def run(self, edit):
+    self.view.run_command('extract_all', {"only_selection": True})
+
+class ExtractAllCommand(sublime_plugin.TextCommand):
+  def run(self, edit, only_selection=False):
     # determine occurrences
     self.occurrences = OccurrenceFinder.packed(self.view) + OccurrenceFinder.unpacked(self.view)
+    if only_selection: # filter if only_selection was given
+      self.occurrences = [o for o in self.occurrences if o.touches_selections(self.view.sel())]
     if not self.occurrences:
       sublime.error_message(MESSAGE_PREFIX + "Could not find any packed or unpacked code.")
       return

@@ -20,7 +20,8 @@ Examples:
 
 - Unpack
 - Pack
-- Extract all (can include relative path)
+- Extract single to folder (can include relative path)
+- Extract all to folder (can include relative path)
 - Pack folder
 - select multiple lines/code blocks to pack/unpack them at same time
 
