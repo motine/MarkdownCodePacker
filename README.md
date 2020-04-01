@@ -14,6 +14,10 @@ Examples:
 - see [[202003292017]])
 - record GIFs
 
+Goal: archive a whole project in a single file (only source code). For explanations and notes)
+
+Example: unfolded incomplete code, below the full file
+
 ## Sublime Plugin
 
 - How does it work?
