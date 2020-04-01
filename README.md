@@ -34,6 +34,14 @@ Example: unfolded incomplete code, below the full file
 - With Package Control: Open the command palette and run the `Package Control: Install Package` command, find and install the `Markdown Code Packer` plugin.
 - Manually: Clone or download git repository into your packages folder (to find the folder run the command `Preferences - Browse Packages`).
 
+## Demo Documents
+
+- [Test](demos/Test.md): Use for playing around
+- [My Mac Setup](demos/My Mac Setup.md): Includes packed config files.
+- [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
+
+_If you are wondering what `[[202003271748]]` means: These are references to other notes (see [Sublime ZK](https://github.com/renerocksai/sublime_zk) for more info)._
+
 ## Choices
 
 - why use comments?
@@ -50,6 +58,7 @@ Contact me via ...
 ## TODO
 
 - write README
+- Support binaries and other encodings than UTF-8
 - Rename to Markdown Code Archive?
 - Add versioning: If you are using GitHub or BitBucket for your hosting, you will need to create a tag each time you want to make a new version available to users. The tag names must be a semantic version number. 
 - Publish

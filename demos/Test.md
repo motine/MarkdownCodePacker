@@ -1,6 +1,6 @@
 # Hello
 
-This is a test file
+This is a test file:
 
 <!-- webpack.config.js:eNpdkMFuwjAQRO98xQhVMkhpcg/qiRvXHCkCkyytkWOnXoeCEP/etQG16sXyeN/OrLf1jiMGHT/xhkBfowk0U0mr+WIy6X03WirpPPgQWZDrBCAXw6WGKisObWVcR+fyyKqQkh/jMMY6Y8DBWHK6J2F7bdwTQs6r81kGYm9PNNtuOxMSXEB1hqOaJ/SWjvsQT9Mgd66xzgKoKnC8pHIbSEdi7LLewflO1CH4HqtGoGDcBy/QsnTHoB3bjC+bBsZFj6Xve+9WzQKsE9P6fpAPMBqRSEAjtcFzzBbaWv+d5RB8S8xij5PR0GP0Q6CDOVN4DHmFJMlaqveSpfmlMgVGlpnXUHnaV+t1R0EVgBLgr0zD/Gr1yH++bO4r+hdylIgCdG7t2ElKlVaxva+RpXDvrTHd6z3Zh9UUt2y0eez9tpj8APiNrXU= -->
 
@@ -35,9 +35,8 @@ Some more content:
 const path = require('path');
 ```
 
-```
-fisch = 1
-```
+<!-- file1:eNpLyyxOzlCwVTDkAgAS1ALG -->
+<!-- file2:eNpLyyxOzlCwVTDkAgAS1ALG -->
 
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
 tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
