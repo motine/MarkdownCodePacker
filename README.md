@@ -41,9 +41,7 @@ Examples:
 
 - To generate a new sublime package (for submission to `packagecontrol.io`) use the command `Package Control: Create Package File`.
 
-## License
-
-## Contribute & Contact
+Contact me via ...
 
 ## TODO
 
