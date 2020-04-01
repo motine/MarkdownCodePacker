@@ -3,6 +3,7 @@ import re, os, os.path
 import zlib, base64
 
 MESSAGE_PREFIX = "Markdown Code Packer: "
+IGNORED_FILE_NAMES_WHEN_PACKING = ['.DS_Store', '.git', 'node_modules']
 
 # You can start the plugin's commands via the command palette (see Default.sublime-commands).
 # Please note that we keep all classes in this single file, because of the reloading behavior of Sublime Text.
@@ -108,7 +109,7 @@ class CodeOccurrence():
 
   def touches_selections(self, selections):
     for sel in selections:
-      if self.region.intersects(sel):
+      if self.region.intersects(sel) or self.region.contains(sel):
         return True
     return False
 
@@ -235,10 +236,15 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
 class InsertFileCommand(sublime_plugin.TextCommand):
   '''Inserts a single file into the current document. This is required for the PackFolderCommand. We needed to split this out, because inserts require a valid edit object (which is only valid during the run method).'''
   def run(self, edit, relative_path=None, full_path=None):
-    with open(full_path, "r") as f:
-      occurrence = CodeOccurrence(filename=relative_path, unpacked=f.read())
-      insert_point = self.view.full_line(self.view.sel()[-1]).b
-      self.view.insert(edit, insert_point, occurrence.packed_markdown)
+    with open(full_path, "r", encoding="UTF-8") as f:
+      try:
+        occurrence = CodeOccurrence(filename=relative_path, unpacked=f.read())
+        insert_point = self.view.full_line(self.view.sel()[-1]).b
+        self.view.insert(edit, insert_point, occurrence.packed_markdown)
+
+      except Exception:
+        sublime.error_message(MESSAGE_PREFIX + "Could not pack contents of %s." % (full_path,))
+        raise
 
 class PackFolderCommand(sublime_plugin.TextCommand):
   def run(self, edit):
@@ -254,7 +260,7 @@ class PackFolderCommand(sublime_plugin.TextCommand):
     '''inserts the folder contents into the current view. relative_path will be prepended to the filename'''
     for fname in sorted(os.listdir(folder), reverse=True):
       full_path = os.path.join(folder, fname)
-      if fname.startswith('.'):
+      if fname in IGNORED_FILE_NAMES_WHEN_PACKING:
         continue
       if os.path.isdir(full_path):
         self.insert_folder_contents(full_path, os.path.join(relative_path, fname))
