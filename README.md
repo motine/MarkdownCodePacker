@@ -36,8 +36,16 @@ after:
 
 You can also include binary files (e.g. images)
 
+**Pack/Unpack**
+
 ![](assets/packunpack.gif)
+
+**Extract All to Folder**
+
 ![](assets/extractall.gif)
+
+**Pack Folder**
+
 ![](assets/packfolder.gif)
 
 **Demo Documents**
