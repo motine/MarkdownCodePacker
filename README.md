@@ -28,11 +28,11 @@ after:
 
 ## Features
 
-`Markdown Code Packer: Pack`: Pack selected code block(s)
-`Markdown Code Packer: Unpack`: Unpack selected code block(s)
-`Markdown Code Packer: Extract Selection to Folder`: Extract selected blocks to a folder (filename can include relative path)
-`Markdown Code Packer: Extract All to Folder`: Extract all blocks in the document to a folder
-`Markdown Code Packer: Pack Folder`: Insert all files of a folder into the document
+- `Markdown Code Packer: Pack`: Pack selected code block(s)
+- `Markdown Code Packer: Unpack`: Unpack selected code block(s)
+- `Markdown Code Packer: Extract Selection to Folder`: Extract selected blocks to a folder (filename can include relative path)
+- `Markdown Code Packer: Extract All to Folder`: Extract all blocks in the document to a folder
+- `Markdown Code Packer: Pack Folder`: Insert all files of a folder into the document
 
 You can also include binary files (e.g. images)
 
@@ -51,7 +51,7 @@ You can also include binary files (e.g. images)
 **Demo Documents**
 
 - [Test](demos/Test.md): Use for playing around - also includes an a binary file (image) to extract
-- [My Mac Setup](demos/MyMacSetup.md): Includes packed config files.
+- [My Mac Setup](demos/MyMacSetup.md): Includes packed config files
 - [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
 
 ## Installation
