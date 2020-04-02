@@ -86,10 +86,6 @@ For direct contact, please find my email on [tomrothe.de](http://tomrothe.de).
 
 ## TODO
 
-- Add versioning: If you are using GitHub or BitBucket for your hosting, you will need to create a tag each time you want to make a new version available to users. The tag names must be a semantic version number. 
-- Publish
-  - Package Control: https://packagecontrol.io/docs/submitting_a_package#Step_6
-  - HackerNews
 - VSCode plugin?
 - Command line tool (with brew formula)?
 - remember/infer file type for fenced code blocks
