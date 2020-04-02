@@ -5,33 +5,19 @@ import zlib, base64
 MESSAGE_PREFIX = "Markdown Code Packer: "
 IGNORED_FILE_NAMES_WHEN_PACKING = ['.DS_Store', '.git', 'node_modules']
 
-# You can start the plugin's commands via the command palette (see Default.sublime-commands).
-# Please note that we keep all classes in this single file, because of the reloading behavior of Sublime Text.
-# (only top level files are reloaded; and top level files are only reloaded when save - not when a dependency changes)
-#
-# Please see `README.md` for more info
-#
-# Resources:
-# - https://www.sublimetext.com/docs/3/api_reference.html#sublime
-# - https://code.tutsplus.com/tutorials/how-to-create-a-sublime-text-2-plugin--net-22685
-#
-# Examples:
-# --- packed ---
-# <!-- package.json:eNo1kEFyAzEIBO/7inmAa1+R3HLNfYnE2lRJQpbA5ecH2clNCBhm+ksHV0ifXpG16MAUA1W2C5K2ycnYfICydJmSpF3BRaI7OccGWHxWzZtx7bEtLUmW7M3ghkI/oQ+2tzaj0rURqMjdace3gZvUEEeV9XhESfWy3V0mmk4bnsFPHkmMTLTBS6Ga9K28hsLUuvSSlB7DYMJxHOG+hi/dXininO34WLLkxpDh4eYdWBoG98E3bplHpI+PhxbvcZLDUqQFz8lbklL+MUUox+lXIUNbptBpROFjx+czcTf2xTI4aErEKeaSd8lka0Pb1odK5rZILlpxNHnphIgBPc9ATcg8eaxu1bJs0IIkgWT+sfW6b7/8OaZO -->
-#
-# --- unpacked with title ---
-# `webpack.config.js`:
-# 
-# ```javascript
-# const path = require('path');
-# // ...
-# ```
-#
-# --- unpacked without title ``` ---
-# ```javascript
-# const path = require('path');
-# // ...
-# ```
+'''
+You can start the plugin's commands via the command palette (see Default.sublime-commands).
+Please note that we keep all classes in this single file, because of the reloading behavior of Sublime Text.
+(only top level files are reloaded; and top level files are only reloaded when save - not when a dependency changes)
+
+Please see `README.md` for more info
+
+Resources:
+- https://www.sublimetext.com/docs/3/api_reference.html#sublime
+- https://code.tutsplus.com/tutorials/how-to-create-a-sublime-text-2-plugin--net-22685
+
+For examples to pack/unpack please see `demo/Test.md`
+'''
 
 class SublimeHelper:
   ENTRY_SELECT = ['[OK]', '...will be replaced...']
@@ -39,7 +25,7 @@ class SublimeHelper:
 
   @staticmethod
   def ask_for_folder(window, start_path, on_done=None):
-    '''shows a quick selection panel. on_done receives the path as first argument'''
+    '''Shows a quick selection panel for the user to select a folder. on_done receives the path as first argument'''
     options = [ # list of [title, subtitle, behavior]
       ['[OK]', start_path, lambda: on_done and on_done(start_path)],
       ['[..]', '[move up]', lambda: SublimeHelper.ask_for_folder(window, os.path.abspath(os.path.join(start_path, os.pardir)), on_done)] # continue with parent_path 
@@ -61,14 +47,19 @@ class SublimeHelper:
 
   @staticmethod
   def infer_start_path(window):
+    '''Determines the path of the folder containing the current window's file/project.'''
     vars = window.extract_variables()
     if 'file' in vars:
       return os.path.dirname(vars['file'])
     return vars.get('folder') or os.path.expanduser('~')
 
 class CodeOccurrence():
+  '''
+  Maintains an instance of packed/unpacked code.
+  packed and unpacked are maintained as bytes, only the ..._markdown versions return UTF-8 strings.
+  region is the sublime View region.
+  '''
   def __init__(self, filename=None, packed=None, unpacked=None, region=None):
-    '''packed and unpacked are bytes. region is the sublime View region.'''
     self.region = region
     self._filename = filename
     self._packed = packed
@@ -118,11 +109,11 @@ class CodeOccurrence():
     return False
 
   def offset_when_packing(self):
-    '''returns the difference between the packed and unpacked region lengths. useful for calculating the offset during replacement.'''
+    '''Returns the difference between the packed and unpacked region lengths (for markdown). Useful for calculating the offset during replacement.'''
     return len(self.packed_markdown) - self.region.size()
 
   def offset_when_unpacking(self):
-    '''see offset_when_packing'''
+    '''See offset_when_packing.'''
     return len(self.unpacked_markdown) - self.region.size()
 
   def _unpack(self):
@@ -142,6 +133,7 @@ class CodeOccurrence():
 class OccurrenceFinder:
   @staticmethod
   def unpacked(view):
+    '''Returns a list of all CodeOccurrence which are unpacked in the given view.'''
     result = []
     for region in view.find_all("^(`[^`]+?`:\s+)?```[\w\W]+?```\s*$"): # fenced_areas_possibly_with_filename
       contents = view.substr(region)
@@ -158,6 +150,7 @@ class OccurrenceFinder:
 
   @staticmethod
   def packed(view):
+    '''Returns a list of all CodeOccurrence which are packed in the given view.'''
     result = []
     for region in view.find_all("^\s*<!--\s*[^:]+:.+?\s*-->\s*$"):
       line = view.substr(region)
@@ -168,6 +161,7 @@ class OccurrenceFinder:
     return result
   
 class UnpackCommand(sublime_plugin.TextCommand):
+  '''Unpack all occurrences that the selection touches.'''
   def run(self, edit):
     occurrences = OccurrenceFinder.packed(self.view)
     occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
@@ -181,8 +175,8 @@ class UnpackCommand(sublime_plugin.TextCommand):
       offset += occurrence.offset_when_unpacking()
 
 class PackCommand(sublime_plugin.TextCommand):
-  # maybe refactor with above
-  def run(self, edit):
+  '''Pack all occurrences that the selection touches.'''
+  def run(self, edit): # maybe refactor with UnpackCommand
     occurrences = OccurrenceFinder.unpacked(self.view)
     occurrences_touching_selection = [o for o in occurrences if o.touches_selections(self.view.sel())]
     if not occurrences_touching_selection:
@@ -195,10 +189,12 @@ class PackCommand(sublime_plugin.TextCommand):
       offset += occurrence.offset_when_packing()
 
 class ExtractCommand(sublime_plugin.TextCommand):
+  '''Extract all occurrences that the selection touches to a folder.'''
   def run(self, edit):
     self.view.run_command('extract_all', {"only_selection": True})
 
 class ExtractAllCommand(sublime_plugin.TextCommand):
+  '''Extract all occurrences in the current view to a folder.'''
   def run(self, edit, only_selection=False):
     # determine occurrences
     self.occurrences = OccurrenceFinder.packed(self.view) + OccurrenceFinder.unpacked(self.view)
@@ -238,7 +234,11 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
         f.write(occurrence.unpacked)
 
 class InsertFileCommand(sublime_plugin.TextCommand):
-  '''Inserts a single file into the current document. This is required for the PackFolderCommand. We needed to split this out, because inserts require a valid edit object (which is only valid during the run method).'''
+  '''
+  Inserts a single file into the current document.
+  This is required for the PackFolderCommand.
+  We needed to split this out, because inserts require a valid edit object (which is only valid during the run method).
+  '''
   def run(self, edit, relative_path=None, full_path=None):
     with open(full_path, "rb") as f:
       try:
@@ -251,6 +251,7 @@ class InsertFileCommand(sublime_plugin.TextCommand):
         raise
 
 class PackFolderCommand(sublime_plugin.TextCommand):
+  '''Asks for a folder and then packs all contained files into the document.'''
   def run(self, edit):
     # ask for the folder
     window = self.view.window()
@@ -270,4 +271,3 @@ class PackFolderCommand(sublime_plugin.TextCommand):
         self.insert_folder_contents(full_path, os.path.join(relative_path, fname))
         continue
       self.view.run_command('insert_file', {"relative_path": os.path.join(relative_path, fname), "full_path":full_path})
-
