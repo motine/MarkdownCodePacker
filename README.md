@@ -1,70 +1,87 @@
 # Markdown Code Packer
 
+Packs code and files into markdown documents.
+This Sublime 3 plugin converts code blocks to compressed, single-line comments to improve visibility.
+
 ## Motivation
 
-I often want to save code files in my markdown notes, but they disrupt the reading flow.
-Sometimes I just want to include them if I ever want to reproduce the spike project.
-Sometimes I create gist.
+For my personal note taking and note sharing, I often want to **save all project code in my [Markdown](https://daringfireball.net/projects/markdown/) documents**.
+But too many **code blocks disrupt the reading flow** and there is **no way to extract all files**.
+This plugin allows to pack and unpack code blocks/files in a document.
 
 Examples:
-- webpack / rollup spike
-- My setup (which includes config files) settings
-- Insert an image?
 
-- see [[202003292017]])
-- record GIFs
+- show off a [technical spike](https://en.wikipedia.org/wiki/Spike_(software_development)), but also keep the needed but boring config files
+- include a lengthy CSV table you want to send along for reference
+- include a small asset in your note, so you don't have to keep it as an additional file
 
-Goal: archive a whole project in a single file (only source code). For explanations and notes)
+Up until now, I solved these use cases by creating a [gist](https://gist.github.com/), put files in an `assets/` folder or zip the whole document along with its files.
+This plugin removes the need for these.
 
-Example: unfolded incomplete code, below the full file
+before:
 
-## Sublime Plugin
+![uncompressed code block](assets/before.png)
 
-- How does it work?
+after:
 
-- Unpack
-- Pack
-- Extract single to folder (can include relative path)
-- Extract all to folder (can include relative path)
-- Pack folder
-- select multiple lines/code blocks to pack/unpack them at same time
-- Supports binary files
+![packed content](assets/after.png)
+
+## Features
+
+`Markdown Code Packer: Pack`: Pack selected code block(s)
+`Markdown Code Packer: Unpack`: Unpack selected code block(s)
+`Markdown Code Packer: Extract Selection to Folder`: Extract selected blocks to a folder (filename can include relative path)
+`Markdown Code Packer: Extract All to Folder`: Extract all blocks in the document to a folder
+`Markdown Code Packer: Pack Folder`: Insert all files of a folder into the document
+
+You can also include binary files (e.g. images)
+
+![](assets/packunpack.gif)
+![](assets/extractall.gif)
+![](assets/packfolder.gif)
+
+**Demo Documents**
+
+- [Test](demos/Test.md): Use for playing around - also includes an a binary file (image) to extract
+- [My Mac Setup](demos/My Mac Setup.md): Includes packed config files.
+- [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
 
 ## Installation
 
 - With Package Control: Open the command palette and run the `Package Control: Install Package` command, find and install the `Markdown Code Packer` plugin.
 - Manually: Clone or download git repository into your packages folder (to find the folder run the command `Preferences - Browse Packages`).
 
-## Demo Documents
-
-- [Test](demos/Test.md): Use for playing around - also includes an a binary file (image) to extract
-- [My Mac Setup](demos/My Mac Setup.md): Includes packed config files.
-- [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
-
 _If you are wondering what `[[202003271748]]` means: These are references to other notes (see [Sublime ZK](https://github.com/renerocksai/sublime_zk) for more info)._
 
-## Choices
+## Format
 
-- why use comments?
-- why use deflate and base64?
+Unpacked format:
+
+    `optional_filename`:
+
+    ```optional_type
+    // code
+    ```
+
+Packed format:
+
+     <!-- filename:packed -->
+
+For packing I chose deflate and then base64 (see [assets/Format Choice.md] for more info).
 
 ## Contribute
 
-...
+Please create an issue if you find a bug or fix it and make a pull request.
+For direct contact, please find my email on [tomrothe.de](http://tomrothe.de).
 
-- To generate a new sublime package (for submission to `packagecontrol.io`) use the command `Package Control: Create Package File`.
-
-Contact me via ...
+<!-- to generate a new sublime package (for submission to `packagecontrol.io`) use the command `Package Control: Create Package File`. -->
 
 ## TODO
 
-- write README
-- Support binaries and other encodings than UTF-8
-- Rename to Markdown Code Archive?
 - Add versioning: If you are using GitHub or BitBucket for your hosting, you will need to create a tag each time you want to make a new version available to users. The tag names must be a semantic version number. 
 - Publish
   - Package Control: https://packagecontrol.io/docs/submitting_a_package#Step_6
   - HackerNews
-- Command line tool? & Brew formula
+- VSCode plugin?
+- Command line tool (with brew formula)?
 - remember/infer file type for fenced code blocks
-- export all files in this file to a directory (similar to "Move...")

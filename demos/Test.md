@@ -8,27 +8,28 @@ This is a test file:
 
 Some more content:
 
-- Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-- tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-- quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-- consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
 
-`fisch/asd.json`:
+`some_data_to_keep.json`:
 
 ```
 {
-  "index": 0,
+  "caption": "I want to keep this, but I don't want to show it in the document...",
   "guid": "e32e8551-9405-4783-abac-e371efc811ba",
-  "isActive": false,
-  "age": 37,
-  "name": {
-    "first": "Bauer",
-    "last": "Oliver"
-  },
+  "age": 36,
+  "name": { "first": "Bauer", "last": "Oliver" },
   "range": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 }
-
 ```
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+
+- consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+- cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+- proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 ## Huhu3
 
@@ -36,7 +37,7 @@ Some more content:
 const path = require('path');
 ```
 
-<!-- file1:eNpLyyxOzlCwVTDkAgAS1ALG -->
+<!-- subpath/file1:eNpLyyxOzlCwVTDkAgAS1ALG -->
 <!-- file2:eNpLyyxOzlCwVTDkAgAS1ALG -->
 
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod

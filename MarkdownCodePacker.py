@@ -94,7 +94,7 @@ class CodeOccurrence():
   @property
   def unpacked_markdown(self):
     try:
-      return "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, self.unpacked.decode('UTF-8'))
+      return "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, self.unpacked.decode('UTF-8').strip())
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
       raise
