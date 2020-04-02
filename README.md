@@ -13,6 +13,7 @@ Examples:
 
 - show off a [technical spike](https://en.wikipedia.org/wiki/Spike_(software_development)), but also keep the needed but boring config files
 - include a lengthy CSV table you want to send along for reference
+- archive a set of files as a starter template for a project
 - include a small asset in your note, so you don't have to keep it as an additional file
 
 Up until now, I solved these use cases by creating a [gist](https://gist.github.com/), put files in an `assets/` folder or zip the whole document along with its files.
@@ -51,7 +52,7 @@ You can also include binary files (e.g. images)
 **Demo Documents**
 
 - [Test](demos/Test.md): Use for playing around - also includes an a binary file (image) to extract
-- [My Mac Setup](demos/My Mac Setup.md): Includes packed config files.
+- [My Mac Setup](demos/MyMacSetup.md): Includes packed config files.
 - [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
 
 ## Installation
@@ -75,7 +76,7 @@ Packed format:
 
      <!-- filename:packed -->
 
-For packing I chose deflate and then base64 (see [assets/Format Choice.md] for more info).
+For packing I chose deflate and then base64 (see [assets/FormatChoice.md] for more info).
 
 ## Contribute
 
