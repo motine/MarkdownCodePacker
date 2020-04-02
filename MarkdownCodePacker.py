@@ -68,7 +68,7 @@ class SublimeHelper:
 
 class CodeOccurrence():
   def __init__(self, filename=None, packed=None, unpacked=None, region=None):
-    '''packed and unpacked are is the actual markdown. region is the sublime View region.'''
+    '''packed and unpacked are bytes. region is the sublime View region.'''
     self.region = region
     self._filename = filename
     self._packed = packed
@@ -98,11 +98,15 @@ class CodeOccurrence():
   
   @property
   def packed_markdown(self):
-    return "<!-- %s:%s -->\n" % (self.filename, self.packed)
+    return "<!-- %s:%s -->\n" % (self.filename, self.packed.decode('UTF-8').strip())
 
   @property
   def unpacked_markdown(self):
-    return "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, self.unpacked)
+    try:
+      return "\n`%s`:\n\n```\n%s\n```\n" % (self.filename, self.unpacked.decode('UTF-8'))
+    except Exception:
+      sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
+      raise
   
   def region_with_offset(self, offset):
     return sublime.Region(self.region.a + offset, self.region.b + offset)
@@ -123,14 +127,14 @@ class CodeOccurrence():
 
   def _unpack(self):
     try:
-      self._unpacked = zlib.decompress(base64.b64decode(self._packed)).decode('UTF-8').strip()
+      self._unpacked = zlib.decompress(base64.b64decode(self._packed))
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not unpack contents.")
       raise
 
   def _pack(self):
     try:
-      self._packed = base64.b64encode(zlib.compress(bytes(self._unpacked, 'UTF-8'), 9)).decode('UTF-8')
+      self._packed = base64.b64encode(zlib.compress(self._unpacked))
     except Exception:
       sublime.error_message(MESSAGE_PREFIX + "Could not pack contents.")
       raise
@@ -149,7 +153,7 @@ class OccurrenceFinder:
       
       code = re.search("[\w\W]*?```.*\n([\w\W]+)```\s*\Z", contents).group(1)
       
-      result.append(CodeOccurrence(filename=filename, unpacked=code, region=region))
+      result.append(CodeOccurrence(filename=filename, unpacked=bytes(code, 'UTF-8'), region=region))
     return result
 
   @staticmethod
@@ -230,13 +234,13 @@ class ExtractAllCommand(sublime_plugin.TextCommand):
           continue
         elif answer == sublime.DIALOG_CANCEL:
           return
-      with open(file_path, 'w') as f:
+      with open(file_path, 'wb') as f:
         f.write(occurrence.unpacked)
 
 class InsertFileCommand(sublime_plugin.TextCommand):
   '''Inserts a single file into the current document. This is required for the PackFolderCommand. We needed to split this out, because inserts require a valid edit object (which is only valid during the run method).'''
   def run(self, edit, relative_path=None, full_path=None):
-    with open(full_path, "r", encoding="UTF-8") as f:
+    with open(full_path, "rb") as f:
       try:
         occurrence = CodeOccurrence(filename=relative_path, unpacked=f.read())
         insert_point = self.view.full_line(self.view.sel()[-1]).b

@@ -28,6 +28,7 @@ Example: unfolded incomplete code, below the full file
 - Extract all to folder (can include relative path)
 - Pack folder
 - select multiple lines/code blocks to pack/unpack them at same time
+- Supports binary files
 
 ## Installation
 
@@ -36,7 +37,7 @@ Example: unfolded incomplete code, below the full file
 
 ## Demo Documents
 
-- [Test](demos/Test.md): Use for playing around
+- [Test](demos/Test.md): Use for playing around - also includes an a binary file (image) to extract
 - [My Mac Setup](demos/My Mac Setup.md): Includes packed config files.
 - [Webpack](demos/Webpack.md): Includes mini-projects, make sure to select one and then extract it to a folder
 
