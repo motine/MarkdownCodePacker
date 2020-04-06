@@ -15,6 +15,7 @@ Examples:
 - include a lengthy CSV table you want to send along for reference
 - archive a set of files as a starter template for a project
 - include a small asset in your note, so you don't have to keep it as an additional file
+- archive the contents of an external blog article without overloading your document
 
 Up until now, I solved these use cases by creating a [gist](https://gist.github.com/), put files in an `assets/` folder or zip the whole document along with its files.
 This plugin removes the need for these.
