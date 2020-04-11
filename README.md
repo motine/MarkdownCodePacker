@@ -88,6 +88,8 @@ For direct contact, please find my email on [tomrothe.de](http://tomrothe.de).
 
 ## TODO
 
+- Use functools.partial (MarkdownCodePacker.py#L37)
+- use `file_path` variable from extract_variables
 - VSCode plugin?
 - Command line tool (with brew formula)?
 - remember/infer file type for fenced code blocks
